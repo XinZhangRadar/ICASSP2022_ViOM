@@ -1,7 +1,8 @@
 # View-angle invariant object monitoring without image registration
-This is the official implementation of ViOM (ICASSP 2020),an object-specific change detection approach. For more details, please refer to:
+This is the official implementation of **ViOM** (ICASSP 2020), an object-specific change detection approach. For more details, please refer to:
 
-* View-angle invariant object monitoring without image registration [paper](https://ieeexplore.ieee.org/abstract/document/9054668/)
+**View-angle invariant object monitoring without image registration [[Paper]](https://ieeexplore.ieee.org/abstract/document/9054668/)**  <br />
+Xin Zhang, Chunlei Huo, Chunhong Pan<br />
 
 ## Get Started 
 ## Preparation
