@@ -1,7 +1,8 @@
 # A *Faster* Pytorch Implementation of Faster R-CNN
 
 ## Introduction
-
+Detection weight:
+* [RFCN-resnet101](https://drive.google.com/file/d/1goliEY6yTQnKENaDcsotWpsxXfMnGiif/view?usp=sharing)
 This project is a *faster* pytorch implementation of faster R-CNN, aimed to accelerating the training of faster R-CNN object detection models. Recently, there are a number of good implementations:
 
 * [rbgirshick/py-faster-rcnn](https://github.com/rbgirshick/py-faster-rcnn), developed based on Pycaffe + Numpy
