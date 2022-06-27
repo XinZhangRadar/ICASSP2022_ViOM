@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>803.jpg</filename>
+	<path>K:\备份\plane_data_2018_7_16\Images\803.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>512</width>
+		<height>768</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>C-130</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>115</xmin>
+			<ymin>311</ymin>
+			<xmax>191</xmax>
+			<ymax>382</ymax>
+		</bndbox>
+	</object>
+</annotation>

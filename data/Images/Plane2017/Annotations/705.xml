@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>705.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\705.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>769</width>
+		<height>1024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>F-16</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>323</xmin>
+			<ymin>487</ymin>
+			<xmax>401</xmax>
+			<ymax>539</ymax>
+		</bndbox>
+	</object>
+</annotation>

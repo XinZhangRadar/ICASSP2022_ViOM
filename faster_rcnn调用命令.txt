@@ -1,0 +1,43 @@
+
+faster-rcnn:
+CUDA_VISIBLE_DEVICES=0 python trainval_net.py --dataset pascal_voc --net vgg16 --bs 1 --nw 4  --cuda --use_tfb
+
+#python test_net.py --dataset pascal_voc --net vgg16 --checksession 1 --checkepoch 20 --checkpoint 10021  --cuda
+
+CUDA_VISIBLE_DEVICES=7 python test_net.py --dataset pascal_voc --net vgg16 --checksession 1 --checkepoch 20 --checkpoint 42999  --cuda --vis
+
+CUDA_VISIBLE_DEVICES=1 python demo.py --net vgg16  --checksession 1  --checkepoch 18 --checkpoint 42999 --cuda --load_dir models
+
+CUDA_VISIBLE_DEVICES=2 python trainval_net.py --dataset pascal_voc --net res101 --bs 1 --nw 4  --cuda --use_tfb
+
+CUDA_VISIBLE_DEVICES=5 python test.py --dataset pascal_voc --net vgg16 --checksession 1 --checkepoch 20 --checkpoint 10072  --cuda --vis
+
+
+keep = nms(cls_dets, 0.1, force_cpu=not cfg.USE_GPU_NMS)
+cls_dets = cls_dets[keep.view(-1).long()]
+im2show = np.copy(im)
+im2show,pos,area = vis_detections(im2show, pascal_classes[j], cls_dets.cpu().numpy(), 0.00002)
+result_path = os.path.join(args.image_dir, imglist[num_images][:-4] + "_det.jpg")
+cv2.imwrite(result_path, im2show)
+
+
+
+fpn:
+CUDA_VISIBLE_DEVICES=7 python trainval_net.py --dataset pascal_voc --net res101 --bs 1 --num_workers 4  --cuda
+
+CUDA_VISIBLE_DEVICES=7 python test_net.py --dataset pascal_voc --net res101 --checksession 1 --checkepoch 3 --checkpoint 1999  --cuda --vis
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dataset = roibatchLoader(roidb, ratio_list, ratio_index, 1,imdb.num_classes, training=False, normalize = False)

@@ -6,7 +6,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+import cv2
 import _init_paths
 import os
 import sys
@@ -32,6 +32,16 @@ from model.utils.net_utils import weights_normal_init, save_net, load_net, \
 
 from model.faster_rcnn.vgg16 import vgg16
 from model.faster_rcnn.resnet import resnet
+
+
+from model.utils.net_utils import save_net, load_net, vis_detections
+from model.rpn.bbox_transform import bbox_transform_inv
+from model.rpn.bbox_transform import clip_boxes
+
+
+sys.path
+sys.path.append("/home/zhangxin/faster-rcnn.pytorch/lib/model/utils/") 
+
 
 def parse_args():
   """
@@ -119,7 +129,7 @@ def parse_args():
   args = parser.parse_args()
   return args
 
-
+#set number of data,number of batch size,number of data per batch , if there is left over.
 class sampler(Sampler):
   def __init__(self, train_size, batch_size):
     self.num_data = train_size
@@ -191,10 +201,12 @@ if __name__ == '__main__':
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
   # train set
-  # -- Note: Use validation set and disable the flipped to enable faster loading.
-  cfg.TRAIN.USE_FLIPPED = True
+  # -- Note: Use validation set and disable the flipped/affine to enable faster loading.
+  cfg.TRAIN.USE_FLIPPED = False
+  cfg.TRAIN.USE_AFFINE = True
   cfg.USE_GPU_NMS = args.cuda
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdb_name)
+  pdb.set_trace()
   train_size = len(roidb)
 
   print('{:d} roidb entries'.format(len(roidb)))
@@ -202,7 +214,7 @@ if __name__ == '__main__':
   output_dir = args.save_dir + "/" + args.net + "/" + args.dataset
   if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-
+  #pdb.set_trace();
   sampler_batch = sampler(train_size, args.batch_size)
 
   dataset = roibatchLoader(roidb, ratio_list, ratio_index, args.batch_size, \
@@ -211,7 +223,15 @@ if __name__ == '__main__':
   dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                             sampler=sampler_batch, num_workers=args.num_workers)
 
+  #iters_per_epoch = int(train_size / args.batch_size)
+  #data_iter = iter(dataloader)
+  #pdb.set_trace()
+  #for step in range(iters_per_epoch):
+    #data = next(data_iter)
+
+
   # initilize the tensor holder here.
+
   im_data = torch.FloatTensor(1)
   im_info = torch.FloatTensor(1)
   num_boxes = torch.LongTensor(1)
@@ -236,6 +256,8 @@ if __name__ == '__main__':
   # initilize the network here.
   if args.net == 'vgg16':
     fasterRCNN = vgg16(imdb.classes, pretrained=True, class_agnostic=args.class_agnostic)
+    #print(imdb.classes)
+    
   elif args.net == 'res101':
     fasterRCNN = resnet(imdb.classes, 101, pretrained=True, class_agnostic=args.class_agnostic)
   elif args.net == 'res50':
@@ -247,7 +269,7 @@ if __name__ == '__main__':
     pdb.set_trace()
 
   fasterRCNN.create_architecture()
-
+ # import pdb;pdb.set_trace()
   lr = cfg.TRAIN.LEARNING_RATE
   lr = args.lr
   #tr_momentum = cfg.TRAIN.MOMENTUM
@@ -262,6 +284,8 @@ if __name__ == '__main__':
       else:
         params += [{'params':[value],'lr':lr, 'weight_decay': cfg.TRAIN.WEIGHT_DECAY}]
 
+  if args.cuda:
+    fasterRCNN.cuda()
   if args.optimizer == "adam":
     lr = lr * 0.1
     optimizer = torch.optim.Adam(params)
@@ -271,23 +295,23 @@ if __name__ == '__main__':
 
   if args.resume:
     load_name = os.path.join(output_dir,
-      'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
+      'faster_rcnn_TO_NMS_VGG_{}_{}_{}.pth'.format(1, 13, 30099))
     print("loading checkpoint %s" % (load_name))
     checkpoint = torch.load(load_name)
     args.session = checkpoint['session']
-    args.start_epoch = checkpoint['epoch']
+    args.start_epoch = 14
     fasterRCNN.load_state_dict(checkpoint['model'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    lr = optimizer.param_groups[0]['lr']
+    #optimizer.load_state_dict(checkpoint['optimizer'])
+    #lr = optimizer.param_groups[0]['lr']
     if 'pooling_mode' in checkpoint.keys():
       cfg.POOLING_MODE = checkpoint['pooling_mode']
     print("loaded checkpoint %s" % (load_name))
+  
+  cfg.POOLING_MODE = 'align'
 
   if args.mGPUs:
     fasterRCNN = nn.DataParallel(fasterRCNN)
 
-  if args.cuda:
-    fasterRCNN.cuda()
 
   iters_per_epoch = int(train_size / args.batch_size)
 
@@ -306,28 +330,59 @@ if __name__ == '__main__':
         lr *= args.lr_decay_gamma
 
     data_iter = iter(dataloader)
+    #pdb.set_trace()
     for step in range(iters_per_epoch):
+      
       data = next(data_iter)
+      #pdb.set_trace
+
+        #print(step)
+      
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
       gt_boxes.data.resize_(data[2].size()).copy_(data[2])
       num_boxes.data.resize_(data[3].size()).copy_(data[3])
-
+      
       fasterRCNN.zero_grad()
-      rois, cls_prob, bbox_pred, \
+      rois,cls_prob, bbox_pred, \
       rpn_loss_cls, rpn_loss_box, \
       RCNN_loss_cls, RCNN_loss_bbox, \
-      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      rois_label,name,pos_easy_num,pos_hard_num,neg_hard_num = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      #rois_label,name = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      #pdb.set_trace()
 
+
+      #pdb.set_trace()
+      
       loss = rpn_loss_cls.mean() + rpn_loss_box.mean() \
            + RCNN_loss_cls.mean() + RCNN_loss_bbox.mean()
       loss_temp += loss.item()
-
+      #modify start:
+      #pdb.set_trace()
+      #im_s,pos,area = vis_detections(im_s, 'plane', rois_bef_nms.cpu().numpy(), 0.5)
+      scores = cls_prob.data
+      boxes = rois.data[:, :, 1:5]
+      rois = rois.cpu().numpy();
+      
+      im_in = np.array(im_data.data)
+      im_s = im_in.reshape(im_in.shape[2],im_in.shape[3],3)
+      #im_s = im_s.transpose(1,2,0)
+      im_s= im_in.astype(np.uint8)
+      #im2show,pos,area = vis_detections(im_s, 'plane', scores.cpu().numpy(), 0.5)
+      '''
+      for i in range( boxes.shape[1]):
+        bbox = tuple(int(np.round(x)) for x in rois[0,i, :])
+        score = scores[0,i,:]
+        
+        cv2.rectangle(im_s, bbox[0:2], bbox[2:4], (0, 204, 0), 2)
+        cv2.putText(im_s, '%.3f' % (score[1]), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
+                        1.0, (0, 0, 255), thickness=1)
+       '''
       # backward
       optimizer.zero_grad()
       loss.backward()
-      if args.net == "vgg16":
-          clip_gradient(fasterRCNN, 10.)
+      #if args.net == "vgg16":
+          #clip_gradient(fasterRCNN, 10.)
       optimizer.step()
 
       if step % args.disp_interval == 0:
@@ -352,7 +407,9 @@ if __name__ == '__main__':
 
         print("[session %d][epoch %2d][iter %4d/%4d] loss: %.4f, lr: %.2e" \
                                 % (args.session, epoch, step, iters_per_epoch, loss_temp, lr))
-        print("\t\t\tfg/bg=(%d/%d), time cost: %f" % (fg_cnt, bg_cnt, end-start))
+        #print("\t\t\tfg/bg=(%d/%d),time cost: %f" % (fg_cnt, bg_cnt,end-start))
+        
+        print("\t\t\tfg/bg=(%d/%d), pe/ph/nh=(%d/%d/%d),time cost: %f" % (fg_cnt, bg_cnt, pos_easy_num,pos_hard_num,neg_hard_num,end-start))
         print("\t\t\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box %.4f" \
                       % (loss_rpn_cls, loss_rpn_box, loss_rcnn_cls, loss_rcnn_box))
         if args.use_tfboard:
@@ -363,13 +420,16 @@ if __name__ == '__main__':
             'loss_rcnn_cls': loss_rcnn_cls,
             'loss_rcnn_box': loss_rcnn_box
           }
-          logger.add_scalars("logs_s_{}/losses".format(args.session), info, (epoch - 1) * iters_per_epoch + step)
+          logger.add_scalars("logs_TO_NMS_VGG_{}/losses".format(args.session), info, (epoch - 1) * iters_per_epoch + step)
+          logger.add_image('train_img', im_s, (epoch - 1) * iters_per_epoch + step)
+          #logger.add_image('detect_img', im2show, (epoch - 1) * iters_per_epoch + step)
+
 
         loss_temp = 0
         start = time.time()
 
     
-    save_name = os.path.join(output_dir, 'faster_rcnn_{}_{}_{}.pth'.format(args.session, epoch, step))
+    save_name = os.path.join(output_dir, 'faster_rcnn_TO_NMS_VGG_{}_{}_{}.pth'.format(args.session, epoch, step))
     save_checkpoint({
       'session': args.session,
       'epoch': epoch + 1,
@@ -382,3 +442,6 @@ if __name__ == '__main__':
 
   if args.use_tfboard:
     logger.close()
+
+
+

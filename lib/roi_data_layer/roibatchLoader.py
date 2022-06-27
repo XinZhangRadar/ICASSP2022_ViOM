@@ -10,6 +10,8 @@ import torch.utils.data as data
 from PIL import Image
 import torch
 
+import cv2 as cv
+
 from model.utils.config import cfg
 from roi_data_layer.minibatch import get_minibatch, get_minibatch
 from model.rpn.bbox_transform import bbox_transform_inv, clip_boxes
@@ -65,11 +67,20 @@ class roibatchLoader(data.Dataset):
     # sample in this group
     minibatch_db = [self._roidb[index_ratio]]
     blobs = get_minibatch(minibatch_db, self._num_classes)
+    
+    #cv.imwrite(str(index)+'.jpg',blobs['data'].reshape(blobs['data'].shape[1],blobs['data'].shape[2],3))
     data = torch.from_numpy(blobs['data'])
     im_info = torch.from_numpy(blobs['im_info'])
     # we need to random shuffle the bounding box.
-    data_height, data_width = data.size(1), data.size(2)
+
+    #data_height, data_width = data.size(1), data.size(2)
+    #data_height, data_width = self._roidb[index]['height'],data.size(2)
+    data_height, data_width = data.size(1),data.size(2)
+
+    #print(index,data_height, data_width)
+    '''
     if self.training:
+        #print(index);
         np.random.shuffle(blobs['gt_boxes'])
         gt_boxes = torch.from_numpy(blobs['gt_boxes'])
 
@@ -86,6 +97,7 @@ class roibatchLoader(data.Dataset):
         ratio = self.ratio_list_batch[index]
 
         if self._roidb[index_ratio]['need_crop']:
+            #print('sssss')
             if ratio < 1:
                 # this means that data_width << data_height, we need to crop the
                 # data_height
@@ -104,7 +116,10 @@ class roibatchLoader(data.Dataset):
                         if y_s_min == y_s_max:
                             y_s = y_s_min
                         else:
-                            y_s = np.random.choice(range(y_s_min, y_s_max))
+                            try:
+                                y_s = np.random.choice(range(y_s_min, y_s_max))
+                            except:
+                                y_s = np.random.choice(range(y_s_max, y_s_min))
                     else:
                         y_s_add = int((box_region-trim_size)/2)
                         if y_s_add == 0:
@@ -112,6 +127,8 @@ class roibatchLoader(data.Dataset):
                         else:
                             y_s = np.random.choice(range(min_y, min_y+y_s_add))
                 # crop the image
+                #print(data.shape)
+
                 data = data[:, y_s:(y_s + trim_size), :, :]
 
                 # shift y coordiante of gt_boxes
@@ -158,14 +175,18 @@ class roibatchLoader(data.Dataset):
                 gt_boxes[:, 2].clamp_(0, trim_size - 1)
 
         # based on the ratio, padding the image.
+        
         if ratio < 1:
             # this means that data_width < data_height
             trim_size = int(np.floor(data_width / ratio))
 
             padding_data = torch.FloatTensor(int(np.ceil(data_width / ratio)), \
                                              data_width, 3).zero_()
-
-            padding_data[:data_height, :, :] = data[0]
+            #pdb.set_trace();
+            try:
+                padding_data[:data_height, :, :] = data[0]
+            except :
+                print(padding_data[:data_height, :, :].shape,data[0].shape);
             # update im_info
             im_info[0, 0] = padding_data.size(0)
             # print("height %d %d \n" %(index, anchor_idx))
@@ -174,7 +195,11 @@ class roibatchLoader(data.Dataset):
             # if the image need to crop.
             padding_data = torch.FloatTensor(data_height, \
                                              int(np.ceil(data_height * ratio)), 3).zero_()
-            padding_data[:, :data_width, :] = data[0]
+            try:
+                padding_data[:, :data_width, :] = data[0]
+            except:
+                print('weight');
+
             im_info[0, 1] = padding_data.size(1)
         else:
             trim_size = min(data_height, data_width)
@@ -201,16 +226,26 @@ class roibatchLoader(data.Dataset):
             # permute trim_data to adapt to downstream processing
         padding_data = padding_data.permute(2, 0, 1).contiguous()
         im_info = im_info.view(3)
+        #pdb.set_trace();
+        #print(padding_data)
 
         return padding_data, im_info, gt_boxes_padding, num_boxes
+
     else:
         data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
         im_info = im_info.view(3)
 
         gt_boxes = torch.FloatTensor([1,1,1,1,1])
         num_boxes = 0
+    '''
+    data = data.permute(0, 3, 1, 2).contiguous().view(3, data_height, data_width)
+    im_info = im_info.view(3)
 
-        return data, im_info, gt_boxes, num_boxes
+    gt_boxes = torch.from_numpy(blobs['gt_boxes'])
+    num_boxes = 0
+
+
+    return data, im_info, gt_boxes, num_boxes
 
   def __len__(self):
     return len(self._roidb)

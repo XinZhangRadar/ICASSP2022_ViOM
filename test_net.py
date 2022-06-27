@@ -1,7 +1,7 @@
 # --------------------------------------------------------
 # Tensorflow Faster R-CNN
 # Licensed under The MIT License [see LICENSE for details]
-# Written by Jiasen Lu, Jianwei Yang, based on code from Ross Girshick
+# Written  Jiasen Lu, Jianwei Yang, based on code from Ross Girshick
 # --------------------------------------------------------
 from __future__ import absolute_import
 from __future__ import division
@@ -135,7 +135,8 @@ if __name__ == '__main__':
   print('Using config:')
   pprint.pprint(cfg)
 
-  cfg.TRAIN.USE_FLIPPED = False
+  cfg.TRAIN.USE_FLIPPED = False 
+  cfg.TRAIN.USE_AFFINE = False
   imdb, roidb, ratio_list, ratio_index = combined_roidb(args.imdbval_name, False)
   imdb.competition_mode(on=True)
 
@@ -145,7 +146,7 @@ if __name__ == '__main__':
   if not os.path.exists(input_dir):
     raise Exception('There is no input directory for loading network from ' + input_dir)
   load_name = os.path.join(input_dir,
-    'faster_rcnn_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
+    'faster_rcnn_VGG_{}_{}_{}.pth'.format(args.checksession, args.checkepoch, args.checkpoint))
 
   # initilize the network here.
   if args.net == 'vgg16':
@@ -167,7 +168,7 @@ if __name__ == '__main__':
   fasterRCNN.load_state_dict(checkpoint['model'])
   if 'pooling_mode' in checkpoint.keys():
     cfg.POOLING_MODE = checkpoint['pooling_mode']
-
+  cfg.POOLING_MODE = 'prp'
 
   print('load model successfully!')
   # initilize the tensor holder here.
@@ -203,29 +204,28 @@ if __name__ == '__main__':
   if vis:
     thresh = 0.05
   else:
-    thresh = 0.0
+    thresh = 0.5
 
   save_name = 'faster_rcnn_10'
   num_images = len(imdb.image_index)
+  #num_images = 10000
+  #pdb.set_trace();
   all_boxes = [[[] for _ in xrange(num_images)]
                for _ in xrange(imdb.num_classes)]
 
   output_dir = get_output_dir(imdb, save_name)
-  dataset = roibatchLoader(roidb, ratio_list, ratio_index, 1, \
-                        imdb.num_classes, training=False, normalize = False)
-  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,
-                            shuffle=False, num_workers=0,
-                            pin_memory=True)
+  dataset = roibatchLoader(roidb, ratio_list, ratio_index, 1, imdb.num_classes, training=True, normalize = False)
+  dataloader = torch.utils.data.DataLoader(dataset, batch_size=1,shuffle=False, num_workers=0, pin_memory=True)
 
   data_iter = iter(dataloader)
 
   _t = {'im_detect': time.time(), 'misc': time.time()}
   det_file = os.path.join(output_dir, 'detections.pkl')
-
+  #pdb.set_trace()
   fasterRCNN.eval()
   empty_array = np.transpose(np.array([[],[],[],[],[]]), (1,0))
   for i in range(num_images):
-
+      #pdb.set_trace()
       data = next(data_iter)
       im_data.data.resize_(data[0].size()).copy_(data[0])
       im_info.data.resize_(data[1].size()).copy_(data[1])
@@ -236,7 +236,7 @@ if __name__ == '__main__':
       rois, cls_prob, bbox_pred, \
       rpn_loss_cls, rpn_loss_box, \
       RCNN_loss_cls, RCNN_loss_bbox, \
-      rois_label = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
+      rois_label,name = fasterRCNN(im_data, im_info, gt_boxes, num_boxes)
 
       scores = cls_prob.data
       boxes = rois.data[:, :, 1:5]
@@ -309,17 +309,22 @@ if __name__ == '__main__':
       sys.stdout.write('im_detect: {:d}/{:d} {:.3f}s {:.3f}s   \r' \
           .format(i + 1, num_images, detect_time, nms_time))
       sys.stdout.flush()
-
+      pdb.set_trace()
+      cv2.imwrite('test_result/result%d.png' % (i), im2show)
       if vis:
-          cv2.imwrite('result.png', im2show)
-          pdb.set_trace()
+          #cv2.imwrite('result.png', im2show)
+          cv2.imwrite('images/result/result%d.png' % (i), im2show)
+          #pdb.set_trace()
           #cv2.imshow('test', im2show)
           #cv2.waitKey(0)
+      #pdb.set_trace();
 
   with open(det_file, 'wb') as f:
       pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
 
   print('Evaluating detections')
+
+  #pdb.set_trace()
   imdb.evaluate_detections(all_boxes, output_dir)
 
   end = time.time()

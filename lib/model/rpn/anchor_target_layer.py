@@ -52,11 +52,12 @@ class _AnchorTargetLayer(nn.Module):
         #   generate 9 anchor boxes centered on cell i
         #   apply predicted bbox deltas at cell i to each of the 9 anchors
         # filter out-of-image anchors
-
+        #pdb.set_trace()
         rpn_cls_score = input[0]
         gt_boxes = input[1]
         im_info = input[2]
         num_boxes = input[3]
+        #pdb.set_trace()
 
         # map of shape (..., H, W)
         height, width = rpn_cls_score.size(2), rpn_cls_score.size(3)
@@ -96,8 +97,9 @@ class _AnchorTargetLayer(nn.Module):
         bbox_outside_weights = gt_boxes.new(batch_size, inds_inside.size(0)).zero_()
 
         overlaps = bbox_overlaps_batch(anchors, gt_boxes)
-
+        #argmax_overlaps:the index of gt that can do self-attention with each anchor
         max_overlaps, argmax_overlaps = torch.max(overlaps, 2)
+        overlaps_indece = argmax_overlaps;
         gt_max_overlaps, _ = torch.max(overlaps, 1)
 
         if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
@@ -163,6 +165,8 @@ class _AnchorTargetLayer(nn.Module):
         bbox_outside_weights[labels == 1] = positive_weights
         bbox_outside_weights[labels == 0] = negative_weights
 
+        overlaps_indece = _unmap(overlaps_indece, total_anchors, inds_inside, batch_size, fill=0.5)
+
         labels = _unmap(labels, total_anchors, inds_inside, batch_size, fill=-1)
         bbox_targets = _unmap(bbox_targets, total_anchors, inds_inside, batch_size, fill=0)
         bbox_inside_weights = _unmap(bbox_inside_weights, total_anchors, inds_inside, batch_size, fill=0)
@@ -189,6 +193,10 @@ class _AnchorTargetLayer(nn.Module):
         bbox_outside_weights = bbox_outside_weights.contiguous().view(batch_size, height, width, 4*A)\
                             .permute(0,3,1,2).contiguous()
         outputs.append(bbox_outside_weights)
+
+        overlaps_indece = overlaps_indece.view(batch_size, height, width, A).permute(0,3,1,2).contiguous()
+        overlaps_indece = overlaps_indece.view(batch_size, 1, A * height, width)
+        outputs.append(overlaps_indece)
 
         return outputs
 

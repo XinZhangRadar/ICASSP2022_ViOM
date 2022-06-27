@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>766.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\766.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>769</width>
+		<height>1024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>C-130</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>431</xmin>
+			<ymin>284</ymin>
+			<xmax>496</xmax>
+			<ymax>374</ymax>
+		</bndbox>
+	</object>
+</annotation>

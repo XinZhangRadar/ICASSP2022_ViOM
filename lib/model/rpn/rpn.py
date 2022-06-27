@@ -8,11 +8,13 @@ from model.utils.config import cfg
 from .proposal_layer import _ProposalLayer
 from .anchor_target_layer import _AnchorTargetLayer
 from model.utils.net_utils import _smooth_l1_loss
+from model.rpn.bbox_transform import bbox_overlaps_batch
 
 import numpy as np
 import math
 import pdb
 import time
+import matplotlib.pyplot as plt
 
 class _RPN(nn.Module):
     """ region proposal network """
@@ -58,11 +60,13 @@ class _RPN(nn.Module):
     def forward(self, base_feat, im_info, gt_boxes, num_boxes):
 
         batch_size = base_feat.size(0)
+        #pdb.set_trace()
 
         # return feature map after convrelu layer
-        rpn_conv1 = F.relu(self.RPN_Conv(base_feat), inplace=True)
+        rpn_conv1 = F.relu(self.RPN_Conv(base_feat), inplace=False)
         # get rpn classification score
         rpn_cls_score = self.RPN_cls_score(rpn_conv1)
+        #pdb.set_trace()
 
         rpn_cls_score_reshape = self.reshape(rpn_cls_score, 2)
         rpn_cls_prob_reshape = F.softmax(rpn_cls_score_reshape, 1)
@@ -74,9 +78,18 @@ class _RPN(nn.Module):
         # proposal layer
         cfg_key = 'TRAIN' if self.training else 'TEST'
 
-        rois = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
+        rois,rois_bef_nms,score = self.RPN_proposal((rpn_cls_prob.data, rpn_bbox_pred.data,
                                  im_info, cfg_key))
 
+        #pdb.set_trace()
+        '''
+        overlaps = bbox_overlaps_batch(rois, gt_boxes)
+        max_overlaps, gt_assignment = torch.max(overlaps, 2)
+        X = max_overlaps.cpu().numpy();
+        Y = score[0].cpu().detach().numpy();
+        plt.scatter(X, Y)
+        plt.show()
+        '''
         self.rpn_loss_cls = 0
         self.rpn_loss_box = 0
 
@@ -85,19 +98,34 @@ class _RPN(nn.Module):
             assert gt_boxes is not None
 
             rpn_data = self.RPN_anchor_target((rpn_cls_score.data, gt_boxes, im_info, num_boxes))
+            #pdb.set_trace();
 
             # compute classification loss
             rpn_cls_score = rpn_cls_score_reshape.permute(0, 2, 3, 1).contiguous().view(batch_size, -1, 2)
             rpn_label = rpn_data[0].view(batch_size, -1)
+            overlaps_indeces = rpn_data[-1].view(batch_size, -1)
+            ###Get 256d (positive sample + negtive sampe)
+            #pdb.set_trace()
 
             rpn_keep = Variable(rpn_label.view(-1).ne(-1).nonzero().view(-1))
             rpn_cls_score = torch.index_select(rpn_cls_score.view(-1,2), 0, rpn_keep)
             rpn_label = torch.index_select(rpn_label.view(-1), 0, rpn_keep.data)
             rpn_label = Variable(rpn_label.long())
+            #overlaps_indeces = torch.index_select(overlaps_indeces.view(-1), 0, rpn_keep.data)
+            #overlaps_indeces = Variable(overlaps_indeces.long())
+
+
+
+
+
+
+
+
             self.rpn_loss_cls = F.cross_entropy(rpn_cls_score, rpn_label)
             fg_cnt = torch.sum(rpn_label.data.ne(0))
 
-            rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:]
+            rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = rpn_data[1:-1]
+
 
             # compute bbox regression loss
             rpn_bbox_inside_weights = Variable(rpn_bbox_inside_weights)
@@ -107,4 +135,5 @@ class _RPN(nn.Module):
             self.rpn_loss_box = _smooth_l1_loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights,
                                                             rpn_bbox_outside_weights, sigma=3, dim=[1,2,3])
 
-        return rois, self.rpn_loss_cls, self.rpn_loss_box
+
+        return rois, rois_bef_nms,self.rpn_loss_cls, self.rpn_loss_box,score

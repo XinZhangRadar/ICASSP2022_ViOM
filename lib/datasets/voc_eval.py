@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 import os
 import pickle
 import numpy as np
-
+import pdb
 def parse_rec(filename):
   """ Parse a PASCAL VOC xml file """
   tree = ET.parse(filename)
@@ -112,6 +112,7 @@ def voc_eval(detpath,
     recs = {}
     for i, imagename in enumerate(imagenames):
       recs[imagename] = parse_rec(annopath.format(imagename))
+
       if i % 100 == 0:
         print('Reading annotation for {:d}/{:d}'.format(
           i + 1, len(imagenames)))
@@ -126,6 +127,8 @@ def voc_eval(detpath,
         recs = pickle.load(f)
       except:
         recs = pickle.load(f, encoding='bytes')
+
+
 
   # extract gt objects for this class
   class_recs = {}
@@ -147,6 +150,7 @@ def voc_eval(detpath,
 
   splitlines = [x.strip().split(' ') for x in lines]
   image_ids = [x[0] for x in splitlines]
+  pdb.set_trace();
   confidence = np.array([float(x[1]) for x in splitlines])
   BB = np.array([[float(z) for z in x[2:]] for x in splitlines])
 

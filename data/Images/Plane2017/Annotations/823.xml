@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>823.jpg</filename>
+	<path>K:\备份\plane_data_2018_7_16\Images\823.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>768</width>
+		<height>768</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>B-52</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>533</xmin>
+			<ymin>491</ymin>
+			<xmax>636</xmax>
+			<ymax>599</ymax>
+		</bndbox>
+	</object>
+</annotation>

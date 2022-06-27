@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>287.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\287.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>768</width>
+		<height>512</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>C-17</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>372</xmin>
+			<ymin>125</ymin>
+			<xmax>498</xmax>
+			<ymax>227</ymax>
+		</bndbox>
+	</object>
+</annotation>

@@ -11,10 +11,52 @@ from model.rpn.rpn import _RPN
 from model.roi_pooling.modules.roi_pool import _RoIPooling
 from model.roi_crop.modules.roi_crop import _RoICrop
 from model.roi_align.modules.roi_align import RoIAlignAvg
-from model.rpn.proposal_target_layer_cascade import _ProposalTargetLayer
+from model.rpn.proposal_target_layer_cascade_om import _ProposalTargetLayer_OM
 import time
 import pdb
 from model.utils.net_utils import _smooth_l1_loss, _crop_pool_layer, _affine_grid_gen, _affine_theta
+import sys
+sys.path.append('/home/zhangxin/faster-rcnn.pytorch/PreciseRoIPooling/pytorch/prroi_pool')
+
+#from prroi_pool import PrRoIPool2D
+from model.rpn.bbox_transform import bbox_overlaps_batch
+import matplotlib.pyplot as plt
+
+class Self_Attn(nn.Module):
+    """ Self attention Layer"""
+    def __init__(self,in_dim,activation):
+        super(Self_Attn,self).__init__()
+        self.chanel_in = in_dim
+        self.activation = activation
+        
+        self.query_conv = nn.Conv2d(in_channels = in_dim , out_channels = in_dim//8 , kernel_size= 1)
+        self.key_conv = nn.Conv2d(in_channels = in_dim , out_channels = in_dim//8 , kernel_size= 1)
+        self.value_conv = nn.Conv2d(in_channels = in_dim , out_channels = in_dim , kernel_size= 1)
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+        self.softmax  = nn.Softmax(dim=-1) #
+    def forward(self,x,y):
+        """
+            inputs :
+                x : input feature maps( B X C X W X H)
+            returns :
+                out : self attention value + input feature 
+                attention: B X N X N (N is Width*Height)
+        """
+        #pdb.set_trace()
+        m_batchsize,C,width ,height = x.size()
+        proj_query  = self.query_conv(x).view(m_batchsize,-1,width*height).permute(0,2,1) # B X N X C
+        proj_key =  self.key_conv(y).view(m_batchsize,-1,width*height) # B X C x (*W*H)
+        energy =  torch.bmm(proj_query,proj_key) # transpose check
+        attention = self.softmax(energy) # BX (N) X (N) 
+        proj_value = self.value_conv(y).view(m_batchsize,-1,width*height) # B X C X N
+
+        out = torch.bmm(proj_value,attention.permute(0,2,1) )
+        out = out.view(m_batchsize,C,width,height)
+        
+        out = self.gamma*out + y
+        return out,attention
+
 
 class _fasterRCNN(nn.Module):
     """ faster RCNN """
@@ -29,35 +71,48 @@ class _fasterRCNN(nn.Module):
 
         # define rpn
         self.RCNN_rpn = _RPN(self.dout_base_model)
-        self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
+        #self.RCNN_proposal_target = _ProposalTargetLayer(self.n_classes)
+        self.RCNN_proposal_target_OM = _ProposalTargetLayer_OM(self.n_classes)
         self.RCNN_roi_pool = _RoIPooling(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
         self.RCNN_roi_align = RoIAlignAvg(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
 
         self.grid_size = cfg.POOLING_SIZE * 2 if cfg.CROP_RESIZE_WITH_MAX_POOL else cfg.POOLING_SIZE
         self.RCNN_roi_crop = _RoICrop()
+        #self.attn1 = Self_Attn( 512, 'relu')
+        #self.attn2 = Self_Attn( 512,  'relu')
 
     def forward(self, im_data, im_info, gt_boxes, num_boxes):
+        #pdb.set_trace();
         batch_size = im_data.size(0)
-
+        #avg_pool = PrRoIPool2D(cfg.POOLING_SIZE, cfg.POOLING_SIZE, 1.0/16.0)
         im_info = im_info.data
         gt_boxes = gt_boxes.data
         num_boxes = num_boxes.data
+        #pdb.set_trace()
 
         # feed image data to base model to obtain base feature map
         base_feat = self.RCNN_base(im_data)
 
         # feed base feature map tp RPN to obtain rois
-        rois, rpn_loss_cls, rpn_loss_bbox = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
+        rois,rois_bef_nms, rpn_loss_cls, rpn_loss_bbox,score = self.RCNN_rpn(base_feat, im_info, gt_boxes, num_boxes)
+        #pdb.set_trace()
+        
 
         # if it is training phrase, then use ground trubut bboxes for refining
         if self.training:
-            roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
-            rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws = roi_data
+            #pdb.set_trace();
+            roi_data = self.RCNN_proposal_target_OM(rois, gt_boxes, num_boxes,score)
+
+            #roi_data = self.RCNN_proposal_target(rois, gt_boxes, num_boxes)
+            
+            rois, rois_label, rois_target, rois_inside_ws, rois_outside_ws,overlaps_indece_batch,pos_easy_num,pos_hard_num,neg_hard_num = roi_data
 
             rois_label = Variable(rois_label.view(-1).long())
             rois_target = Variable(rois_target.view(-1, rois_target.size(2)))
             rois_inside_ws = Variable(rois_inside_ws.view(-1, rois_inside_ws.size(2)))
             rois_outside_ws = Variable(rois_outside_ws.view(-1, rois_outside_ws.size(2)))
+            #gt = torch.cat( (gt_boxes.view(-1,5)[:,-1].reshape(-1,1),gt_boxes.view(-1,5)[:,:-1]) ,dim = 1)
+
         else:
             rois_label = None
             rois_target = None
@@ -67,7 +122,13 @@ class _fasterRCNN(nn.Module):
             rpn_loss_bbox = 0
 
         rois = Variable(rois)
+        rois_bef_nms = Variable(rois_bef_nms)
+        
+
+
+        
         # do roi pooling based on predicted rois
+        cfg.POOLING_MODE == 'align'
 
         if cfg.POOLING_MODE == 'crop':
             # pdb.set_trace()
@@ -75,14 +136,57 @@ class _fasterRCNN(nn.Module):
             grid_xy = _affine_grid_gen(rois.view(-1, 5), base_feat.size()[2:], self.grid_size)
             grid_yx = torch.stack([grid_xy.data[:,:,:,1], grid_xy.data[:,:,:,0]], 3).contiguous()
             pooled_feat = self.RCNN_roi_crop(base_feat, Variable(grid_yx).detach())
+
+            #if self.training:
+                #grid_gt_xy = _affine_grid_gen(gt, base_feat.size()[2:], self.grid_size)
+                #grid_gt_yx = torch.stack([grid_gt_xy.data[:,:,:,1], grid_gt_xy.data[:,:,:,0]], 3).contiguous()
+                #pooled_gt_feat = self.RCNN_roi_crop(base_feat, Variable(grid_gt_yx).detach())
+
             if cfg.CROP_RESIZE_WITH_MAX_POOL:
                 pooled_feat = F.max_pool2d(pooled_feat, 2, 2)
+                #pooled_gt_feat = F.max_pool2d(pooled_gt_feat, 2, 2)
+            name = 'crop'
         elif cfg.POOLING_MODE == 'align':
             pooled_feat = self.RCNN_roi_align(base_feat, rois.view(-1, 5))
+            #if self.training:
+                #pooled_gt_feat =self.RCNN_roi_align(base_feat, gt)
+            name = 'align'
         elif cfg.POOLING_MODE == 'pool':
             pooled_feat = self.RCNN_roi_pool(base_feat, rois.view(-1,5))
+            #if self.training:
+                #pooled_gt_feat =self.RCNN_roi_pool(base_feat, gt)
+            name = 'pool'
+        #elif cfg.POOLING_MODE == 'prp':
+            #pooled_feat = avg_pool(base_feat, rois.view(-1,5))
+            #if self.training:
+                #pooled_gt_feat = avg_pool(base_feat, gt)
+
+            name = 'prp'
+        #pdb.set_trace()
+        '''
+        for i in range(batch_size):
+            indice_roi = np.where(rois_label.view(batch_size,rois_label.size(0))[i,:])[0];#select positive sample index
+            pooled_feat_at = pooled_feat.index_select(0, torch.LongTensor(indice_roi).cuda());#obtain positive sample rois pooled feature map ,shape: [pos_num x c x w x h]
+            indice_gt = overlaps_indece_batch[i,:][indice_roi];#select positive sample correspoding gt_box index 
+            pooled_gt_feat_at = pooled_gt_feat.index_select(0, indice_gt.cuda());#obtain positive sample rois pooled feature map
+            pooled_feat_at,p1 = self.attn1(pooled_gt_feat_at,pooled_feat_at)
+            pooled_feat = torch.cat( (pooled_feat_at,pooled_feat[pooled_feat_at.size(0):]) ,dim = 0)
+
+        	#pooled_feat[0:pooled_feat_at.size(0)].copy_(pooled_feat_at);
+        '''
+        #for i in range(batch_size):
+        #    pooled_feat_at,p1 = self.attn1(pooled_feat[0].expand(pooled_feat.shape),pooled_feat)
+
+
+
+        
+
+
+
+
 
         # feed pooled features to top model
+        #pooled_feat = self._head_to_tail(pooled_feat_at)
         pooled_feat = self._head_to_tail(pooled_feat)
 
         # compute bbox offset
@@ -96,6 +200,18 @@ class _fasterRCNN(nn.Module):
         # compute object classification probability
         cls_score = self.RCNN_cls_score(pooled_feat)
         cls_prob = F.softmax(cls_score, 1)
+        #pdb.set_trace()
+#///////////////////////////////////////////////
+        #roi_data = self.RCNN_proposal_target_OM(rois, gt_boxes, num_boxes,cls_prob)
+# Test cls_pro and bbox Iou:
+
+        #overlaps = bbox_overlaps_batch(rois, gt_boxes)
+        #max_overlaps, gt_assignment = torch.max(overlaps, 2)
+
+        #X = max_overlaps.cpu().numpy();
+        #Y = cls_prob[:,1].cpu().detach().numpy();
+        #plt.scatter(X, Y)
+        #plt.show()
 
         RCNN_loss_cls = 0
         RCNN_loss_bbox = 0
@@ -106,13 +222,18 @@ class _fasterRCNN(nn.Module):
 
             # bounding box regression L1 loss
             RCNN_loss_bbox = _smooth_l1_loss(bbox_pred, rois_target, rois_inside_ws, rois_outside_ws)
+            #print('RCNN_loss_cls:'+str(RCNN_loss_cls));
+            #print('RCNN_loss_bbox:'+str(RCNN_loss_bbox));
 
 
         cls_prob = cls_prob.view(batch_size, rois.size(1), -1)
         bbox_pred = bbox_pred.view(batch_size, rois.size(1), -1)
+        if self.training:
+            return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label,name,pos_easy_num,pos_hard_num,neg_hard_num
 
-        return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label
-
+        #return rois,rois_bef_nms, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label,name
+        else:
+            return rois, cls_prob, bbox_pred, rpn_loss_cls, rpn_loss_bbox, RCNN_loss_cls, RCNN_loss_bbox, rois_label,name
     def _init_weights(self):
         def normal_init(m, mean, stddev, truncated=False):
             """

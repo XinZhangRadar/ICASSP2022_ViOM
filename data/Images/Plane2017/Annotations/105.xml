@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>105.jpg</filename>
+	<path>I:\DOTA_dataset\plane_data_2018_7_16\Images\105.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>512</width>
+		<height>768</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>C-17</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>298</xmin>
+			<ymin>597</ymin>
+			<xmax>406</xmax>
+			<ymax>699</ymax>
+		</bndbox>
+	</object>
+</annotation>

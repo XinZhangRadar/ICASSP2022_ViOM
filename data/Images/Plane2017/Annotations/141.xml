@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>141.jpg</filename>
+	<path>I:\DOTA_dataset\plane_data_2018_7_16\Images\141.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>512</width>
+		<height>256</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>KC-135</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>259</xmin>
+			<ymin>136</ymin>
+			<xmax>313</xmax>
+			<ymax>197</ymax>
+		</bndbox>
+	</object>
+</annotation>

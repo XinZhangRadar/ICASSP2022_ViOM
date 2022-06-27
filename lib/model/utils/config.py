@@ -34,7 +34,7 @@ __C.TRAIN.GAMMA = 0.1
 __C.TRAIN.STEPSIZE = [30000]
 
 # Iteration intervals for showing the loss during training, on command line interface
-__C.TRAIN.DISPLAY = 10
+__C.TRAIN.DISPLAY = 30
 
 # Whether to double the learning rate for bias
 __C.TRAIN.DOUBLE_BIAS = True
@@ -78,6 +78,16 @@ __C.TRAIN.BATCH_SIZE = 128
 # Fraction of minibatch that is labeled foreground (i.e. class > 0)
 __C.TRAIN.FG_FRACTION = 0.25
 
+# Fraction of minibatch that is labeled positive easy example (i.e. overlap > 0.5,class_score > 0.7)
+__C.TRAIN.PE_FRACTION = 0.2
+
+# Fraction of minibatch that is labeled positive hard example (i.e. overlap > 0.5,class_score < 0.5)
+__C.TRAIN.PH_FRACTION = 0.4
+
+# Fraction of minibatch that is labeled negtive hard example (i.e. BG_THRESH_LO<overlap < BG_THRESH_HI)
+__C.TRAIN.NH_FRACTION = 0.4
+
+
 # Overlap threshold for a ROI to be considered foreground (if >= FG_THRESH)
 __C.TRAIN.FG_THRESH = 0.5
 
@@ -87,7 +97,10 @@ __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 
 # Use horizontally-flipped images during training?
-__C.TRAIN.USE_FLIPPED = True
+__C.TRAIN.USE_FLIPPED = False
+
+# Use affine images during training?
+__C.TRAIN.USE_AFFINE = False
 
 # Train bounding-box regressors
 __C.TRAIN.BBOX_REG = True
@@ -172,7 +185,7 @@ __C.TEST.MAX_SIZE = 1000
 
 # Overlap threshold used for non-maximum suppression (suppress boxes with
 # IoU >= this threshold)
-__C.TEST.NMS = 0.3
+__C.TEST.NMS = 0.4
 
 # Experimental: treat the (K+1) units in the cls_score layer as linear
 # predictors (trained, eg, with one-vs-rest SVMs).
@@ -190,10 +203,10 @@ __C.TEST.PROPOSAL_METHOD = 'gt'
 ## NMS threshold used on RPN proposals
 __C.TEST.RPN_NMS_THRESH = 0.7
 ## Number of top scoring boxes to keep before apply NMS to RPN proposals
-__C.TEST.RPN_PRE_NMS_TOP_N = 6000
+__C.TEST.RPN_PRE_NMS_TOP_N = 12000
 
 ## Number of top scoring boxes to keep after applying NMS to RPN proposals
-__C.TEST.RPN_POST_NMS_TOP_N = 300
+__C.TEST.RPN_POST_NMS_TOP_N = 2000
 
 # Proposal height and width both need to be greater than RPN_MIN_SIZE (at orig image scale)
 __C.TEST.RPN_MIN_SIZE = 16
@@ -275,13 +288,13 @@ __C.MATLAB = 'matlab'
 __C.EXP_DIR = 'default'
 
 # Use GPU implementation of non-maximum suppression
-__C.USE_GPU_NMS = True
+__C.USE_GPU_NMS = False
 
 # Default GPU device id
-__C.GPU_ID = 0
+__C.GPU_ID = 4
 
-__C.POOLING_MODE = 'crop'
-
+__C.POOLING_MODE = 'prp'
+#__C.POOLING_MODE = 'crop'
 # Size of the pooled region after RoI pooling
 __C.POOLING_SIZE = 7
 
@@ -297,7 +310,7 @@ __C.ANCHOR_RATIOS = [0.5,1,2]
 # Feature stride for RPN
 __C.FEAT_STRIDE = [16, ]
 
-__C.CUDA = False
+__C.CUDA = True
 
 __C.CROP_RESIZE_WITH_MAX_POOL = True
 

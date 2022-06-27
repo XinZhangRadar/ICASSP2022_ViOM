@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>585.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\585.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>512</width>
+		<height>512</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>KC-135</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>341</xmin>
+			<ymin>223</ymin>
+			<xmax>390</xmax>
+			<ymax>278</ymax>
+		</bndbox>
+	</object>
+</annotation>

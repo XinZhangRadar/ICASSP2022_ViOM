@@ -1,0 +1,32 @@
+<annotation>
+	<folder>VOC2007</folder>
+	<filename>86.jpg</filename>
+	<source>
+		<database>Competition Database</database>
+		<annotation>PASCAL VOC2007</annotation>
+		<image>competition</image>
+		<flickrid>NULL</flickrid>
+	</source>
+	<owner>
+		<flickrid>NULL</flickrid>
+		<name>wanghongzhen</name>
+	</owner>
+	<size>
+		<width>512</width>
+		<height>512</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>B-1B</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>299</xmin>
+			<ymin>217</ymin>
+			<xmax>351</xmax>
+			<ymax>267</ymax>
+		</bndbox>
+	</object>
+</annotation>

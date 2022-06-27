@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>154.jpg</filename>
+	<path>I:\DOTA_dataset\plane_data_2018_7_16\Images\154.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>768</width>
+		<height>768</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>B-1B</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>116</xmin>
+			<ymin>495</ymin>
+			<xmax>208</xmax>
+			<ymax>589</ymax>
+		</bndbox>
+	</object>
+</annotation>

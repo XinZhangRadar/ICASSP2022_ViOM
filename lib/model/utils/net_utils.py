@@ -38,26 +38,64 @@ def weights_normal_init(model, dev=0.01):
 def clip_gradient(model, clip_norm):
     """Computes a gradient clipping coefficient based on gradient norm."""
     totalnorm = 0
-    for p in model.parameters():
-        if p.requires_grad:
-            modulenorm = p.grad.data.norm()
+    for pa in model.parameters():
+        if pa.requires_grad:
+            try:
+                modulenorm = pa.grad.data.norm()
+            except:
+                pdb.set_trace()
+ 
             totalnorm += modulenorm ** 2
     totalnorm = torch.sqrt(totalnorm).item()
     norm = (clip_norm / max(totalnorm, clip_norm))
-    for p in model.parameters():
-        if p.requires_grad:
-            p.grad.mul_(norm)
+    for pa in model.parameters():
+        if pa.requires_grad:
+            pa.grad.mul_(norm)
 
-def vis_detections(im, class_name, dets, thresh=0.8):
+
+
+def pos_extract(dets, thresh=0.5):
     """Visual debugging of detections."""
-    for i in range(np.minimum(10, dets.shape[0])):
+    
+    pos = []
+    area = []
+    for i in range(np.minimum(1000, dets.shape[0])):
         bbox = tuple(int(np.round(x)) for x in dets[i, :4])
         score = dets[i, -1]
+        
+        if score > thresh:
+            pos.append([])
+            pos[i].append((bbox[0]+bbox[2])/2)
+            pos[i].append((bbox[1]+bbox[3])/2)
+            area.append(abs((bbox[2]-bbox[0])*(bbox[3]-bbox[1])))
+            #pdb.set_trace();
+    return pos,area
+
+def vis_detections(im, class_name, dets, thresh=0.5):
+    """Visual debugging of detections."""
+    
+    pos = []
+    area = []
+    for i in range(np.minimum(1000, dets.shape[0])):
+        im_p = np.copy(im);
+        bbox = tuple(int(np.round(x)) for x in dets[i, :4])
+        score = dets[i, -1]
+        
         if score > thresh:
             cv2.rectangle(im, bbox[0:2], bbox[2:4], (0, 204, 0), 2)
-            cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
+            #cv2.rectangle(im_p, bbox[0:2], bbox[2:4], (0, 204, 0), 2)
+            cv2.putText(im, '%s  %d: %.3f' % (class_name,i+1, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
+            #cv2.putText(im, '%s%d' % (class_name,i+1), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
+            #cv2.putText(im, '%.3f' % (score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN,
+            #cv2.putText(im_p, '%.3f' % (score), (0, 15), cv2.FONT_HERSHEY_PLAIN,
                         1.0, (0, 0, 255), thickness=1)
-    return im
+            #cv2.imwrite('/home/zhangxin/faster-rcnn.pytorch/check/im'+str(i)+'.jpg',im_p)
+            pos.append([])
+            pos[i].append((bbox[0]+bbox[2])/2)
+            pos[i].append((bbox[1]+bbox[3])/2)
+            area.append(abs((bbox[2]-bbox[0])*(bbox[3]-bbox[1])))
+            #pdb.set_trace();
+    return im,pos,area
 
 
 def adjust_learning_rate(optimizer, decay=0.1):

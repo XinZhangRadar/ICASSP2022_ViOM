@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>371.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\371.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>768</width>
+		<height>512</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>plane</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>235</xmin>
+			<ymin>123</ymin>
+			<xmax>304</xmax>
+			<ymax>179</ymax>
+		</bndbox>
+	</object>
+</annotation>

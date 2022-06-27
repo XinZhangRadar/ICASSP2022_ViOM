@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>893.jpg</filename>
+	<path>K:\备份\plane_data_2018_7_16\Images\893.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>769</width>
+		<height>1024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>C-17</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>348</xmin>
+			<ymin>360</ymin>
+			<xmax>476</xmax>
+			<ymax>482</ymax>
+		</bndbox>
+	</object>
+</annotation>

@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>30.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\30.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>512</width>
+		<height>512</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>F-15</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>187</xmin>
+			<ymin>168</ymin>
+			<xmax>234</xmax>
+			<ymax>198</ymax>
+		</bndbox>
+	</object>
+</annotation>

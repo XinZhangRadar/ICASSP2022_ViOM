@@ -30,11 +30,12 @@ class _ProposalTargetLayer(nn.Module):
         self.BBOX_NORMALIZE_STDS = torch.FloatTensor(cfg.TRAIN.BBOX_NORMALIZE_STDS)
         self.BBOX_INSIDE_WEIGHTS = torch.FloatTensor(cfg.TRAIN.BBOX_INSIDE_WEIGHTS)
 
-    def forward(self, all_rois, gt_boxes, num_boxes):
+    def forward(self, all_rois, gt_boxes, num_boxes,cls_scores):
 
         self.BBOX_NORMALIZE_MEANS = self.BBOX_NORMALIZE_MEANS.type_as(gt_boxes)
         self.BBOX_NORMALIZE_STDS = self.BBOX_NORMALIZE_STDS.type_as(gt_boxes)
         self.BBOX_INSIDE_WEIGHTS = self.BBOX_INSIDE_WEIGHTS.type_as(gt_boxes)
+        
 
         gt_boxes_append = gt_boxes.new(gt_boxes.size()).zero_()
         gt_boxes_append[:,:,1:5] = gt_boxes[:,:,:4]
@@ -47,13 +48,13 @@ class _ProposalTargetLayer(nn.Module):
         fg_rois_per_image = int(np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
         fg_rois_per_image = 1 if fg_rois_per_image == 0 else fg_rois_per_image
 
-        labels, rois, bbox_targets, bbox_inside_weights = self._sample_rois_pytorch(
+        labels, rois, bbox_targets, bbox_inside_weights,overlaps_indece_batch = self._sample_rois_pytorch(
             all_rois, gt_boxes, fg_rois_per_image,
-            rois_per_image, self._num_classes)
+            rois_per_image, self._num_classes,cls_scores)
 
         bbox_outside_weights = (bbox_inside_weights > 0).float()
 
-        return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+        return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights,overlaps_indece_batch
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -113,15 +114,27 @@ class _ProposalTargetLayer(nn.Module):
         return targets
 
 
-    def _sample_rois_pytorch(self, all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
+    def _sample_rois_pytorch(self, all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes,cls_scores):
         """Generate a random sample of RoIs comprising foreground and background
         examples.
         """
         # overlaps: (rois x gt_boxes)
+        #pdb.set_trace()
 
         overlaps = bbox_overlaps_batch(all_rois, gt_boxes)
+        #pdb.set_trace()
 
         max_overlaps, gt_assignment = torch.max(overlaps, 2)
+        #X = max_overlaps.cpu().numpy();
+        #Y = cls_prob[:,1].cpu().detach().numpy();
+        #plt.scatter(X, Y)
+        #plt.show()
+        
+
+
+
+
+        overlaps_indece = gt_assignment;
 
         batch_size = overlaps.size(0)
         num_proposal = overlaps.size(1)
@@ -131,6 +144,8 @@ class _ProposalTargetLayer(nn.Module):
         offset = offset.view(-1, 1).type_as(gt_assignment) + gt_assignment
 
         labels = gt_boxes[:,:,4].contiguous().view(-1).index((offset.view(-1),)).view(batch_size, -1)
+
+        overlaps_indece_batch = overlaps_indece.new(batch_size, rois_per_image).fill_(100);
         
         labels_batch = labels.new(batch_size, rois_per_image).zero_()
         rois_batch  = all_rois.new(batch_size, rois_per_image, 5).zero_()
@@ -193,10 +208,13 @@ class _ProposalTargetLayer(nn.Module):
 
             # Select sampled values from various arrays:
             labels_batch[i].copy_(labels[i][keep_inds])
+            overlaps_indece_batch[i].copy_(overlaps_indece[i][keep_inds])
 
             # Clamp labels for the background RoIs to 0
             if fg_rois_per_this_image < rois_per_image:
                 labels_batch[i][fg_rois_per_this_image:] = 0
+                #overlaps_indece_batch[i][fg_rois_per_this_image:] = 0.5
+
 
             rois_batch[i] = all_rois[i][keep_inds]
             rois_batch[i,:,0] = i
@@ -208,5 +226,7 @@ class _ProposalTargetLayer(nn.Module):
 
         bbox_targets, bbox_inside_weights = \
                 self._get_bbox_regression_labels_pytorch(bbox_target_data, labels_batch, num_classes)
+        #pdb.set_trace()
 
-        return labels_batch, rois_batch, bbox_targets, bbox_inside_weights
+
+        return labels_batch, rois_batch, bbox_targets, bbox_inside_weights,overlaps_indece_batch

@@ -1,0 +1,26 @@
+<annotation>
+	<folder>Images</folder>
+	<filename>636.jpg</filename>
+	<path>F:\windows_v1.5.1\plane_data_2018_7_16\Images\636.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>257</width>
+		<height>512</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>KC-135</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>59</xmin>
+			<ymin>259</ymin>
+			<xmax>120</xmax>
+			<ymax>313</ymax>
+		</bndbox>
+	</object>
+</annotation>

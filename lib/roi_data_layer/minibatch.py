@@ -14,6 +14,7 @@ import numpy as np
 import numpy.random as npr
 from scipy.misc import imread
 from model.utils.config import cfg
+from model.utils.skew_image import affine_skew
 from model.utils.blob import prep_im_for_blob, im_list_to_blob
 import pdb
 def get_minibatch(roidb, num_classes):
@@ -28,7 +29,6 @@ def get_minibatch(roidb, num_classes):
 
   # Get the input image blob, formatted for caffe
   im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
-
   blobs = {'data': im_blob}
 
   assert len(im_scales) == 1, "Single batch only"
@@ -50,7 +50,7 @@ def get_minibatch(roidb, num_classes):
     dtype=np.float32)
 
   blobs['img_id'] = roidb[0]['img_id']
-
+  
   return blobs
 
 def _get_image_blob(roidb, scale_inds):
@@ -64,7 +64,7 @@ def _get_image_blob(roidb, scale_inds):
   for i in range(num_images):
     #im = cv2.imread(roidb[i]['image'])
     im = imread(roidb[i]['image'])
-
+    #pdb.set_trace();
     if len(im.shape) == 2:
       im = im[:,:,np.newaxis]
       im = np.concatenate((im,im,im), axis=2)
@@ -74,11 +74,19 @@ def _get_image_blob(roidb, scale_inds):
 
     if roidb[i]['flipped']:
       im = im[:, ::-1, :]
+
+    if roidb[i]['affine']:
+      im,_,_ =  affine_skew(roidb[i]['t'], roidb[i]['phi'], im);
+      #pdb.set_trace()
     target_size = cfg.TRAIN.SCALES[scale_inds[i]]
+    #print(im)
+    #print('_______________________________________________________')
     im, im_scale = prep_im_for_blob(im, cfg.PIXEL_MEANS, target_size,
                     cfg.TRAIN.MAX_SIZE)
+    #print(im);
     im_scales.append(im_scale)
     processed_ims.append(im)
+  #print(im)
 
   # Create a blob to hold the input images
   blob = im_list_to_blob(processed_ims)

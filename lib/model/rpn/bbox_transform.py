@@ -179,6 +179,7 @@ def bbox_overlaps_batch(anchors, gt_boxes):
 
         N = anchors.size(0)
         K = gt_boxes.size(1)
+        #pdb.set_trace()
 
         anchors = anchors.view(1, N, 4).expand(batch_size, N, 4).contiguous()
         gt_boxes = gt_boxes[:,:,:4].contiguous()
