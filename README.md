@@ -1,7 +1,7 @@
 # View-angle invariant object monitoring without image registration
 This is the official implementation of ViOM (ICASSP 2020),an object-specific change detection approach. For more details, please refer to:
 
-* [ View-angle invariant object monitoring without image registration](https://ieeexplore.ieee.org/abstract/document/9054668/)
+* View-angle invariant object monitoring without image registration [paper](https://ieeexplore.ieee.org/abstract/document/9054668/)
 
 ## Get Started 
 ## Preparation
@@ -113,7 +113,7 @@ python demo.py --net vgg16 \
 Then you will find the detection results in folder $ROOT/images.
 
 ## Citation
-
+```
 @INPROCEEDINGS{9054668,
   author={Zhang, Xin and Huo, Chunlei and Pan, Chunhong},
   booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
@@ -123,3 +123,4 @@ Then you will find the detection results in folder $ROOT/images.
   number={},
   pages={2283-2287},
   doi={10.1109/ICASSP40776.2020.9054668}}
+```
