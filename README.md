@@ -4,7 +4,7 @@ This is the official implementation of ***ViOM*** (ICASSP 2020), an object-speci
 **View-angle invariant object monitoring without image registration [[Paper]](https://ieeexplore.ieee.org/abstract/document/9054668/)**  <br />
 Xin Zhang, Chunlei Huo, Chunhong Pan<br />
 
-![intro](Network.jpg)
+![intro](VIOM.jpg)
 
 ## Get Started 
 ## Preparation
